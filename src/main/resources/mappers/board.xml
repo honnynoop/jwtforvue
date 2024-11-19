@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.edu.mapper.BoardMapper">
+    
+    <sql id="searchCondition">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                <choose>
+                    <when test="searchType == 'title'">
+                        AND b.title LIKE CONCAT('%', #{keyword}, '%')
+                    </when>
+                    <when test="searchType == 'content'">
+                        AND b.content LIKE CONCAT('%', #{keyword}, '%')
+                    </when>
+                    <when test="searchType == 'author'">
+                        AND u.name LIKE CONCAT('%', #{keyword}, '%')
+                    </when>
+                    <otherwise>
+                        AND (b.title LIKE CONCAT('%', #{keyword}, '%')
+                        OR b.content LIKE CONCAT('%', #{keyword}, '%')
+                        OR u.name LIKE CONCAT('%', #{keyword}, '%'))
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </sql>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO boards (title, content, user_id)
+        VALUES (#{title}, #{content}, #{userId})
+    </insert>
+
+    <select id="findById" resultType="Board">
+        SELECT b.*, u.name as author_name
+        FROM boards b
+        JOIN users u ON b.user_id = u.id
+        WHERE b.id = #{id}
+    </select>
+
+    <select id="findAll" resultType="Board">
+        SELECT b.*, u.name as author_name
+        FROM boards b
+        JOIN users u ON b.user_id = u.id
+        <include refid="searchCondition" />
+        ORDER BY b.created_at DESC
+    </select>
+
+    <update id="update">
+        UPDATE boards
+        SET title = #{title},
+            content = #{content},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM boards WHERE id = #{id}
+    </delete>
+
+    <update id="incrementViewCount">
+        UPDATE boards
+        SET view_count = view_count + 1
+        WHERE id = #{id}
+    </update>
+</mapper>

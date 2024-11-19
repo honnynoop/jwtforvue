@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시글 작성</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.6.2/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        textarea {
+            height: 150px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .file-list {
+            margin-top: 10px;
+        }
+        .preview-image {
+            max-width: 200px;
+            margin-top: 10px;
+        }
+        #response {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+        }
+        .success {
+            background-color: #dff0d8;
+            border-color: #d6e9c6;
+        }
+        .error {
+            background-color: #f2dede;
+            border-color: #ebccd1;
+        }
+    </style>
+</head>
+<body>
+    <h2>게시글 작성</h2>
+    <form id="boardForm" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="userId">작성자</label>
+            <input type="text" id="userId" name="userId" required>
+        </div>
+        <div class="form-group">
+            <label for="title">제목</label>
+            <input type="text" id="title" name="title" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="content">내용</label>
+            <textarea id="content" name="content" required></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="files">파일 첨부</label>
+            <input type="file" id="files" name="files" multiple accept="image/*">
+            <div id="preview" class="file-list"></div>
+        </div>
+        
+        <button type="submit">저장</button>
+    </form>
+    
+    <div id="response"></div>
+    <script>
+        const urls=".";
+        //const urls="http://localhost:8080";
+        document.getElementById('boardForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            //const formData = new FormData();
+            const boardData = {
+                userId:document.getElementById('userId').value,
+                title: document.getElementById('title').value,
+                content: document.getElementById('content').value
+            };
+            
+            // Board 데이터를 JSON 문자열로 변환하여 추가
+            //formData.append('board', JSON.stringify(boardData));
+            
+            const formData = new FormData();
+            formData.append('board', new Blob([JSON.stringify(boardData)], {
+                type: "application/json"
+            }));
+
+
+            // 파일들 추가
+            const fileInput = document.getElementById('files');
+            for (let file of fileInput.files) {
+                formData.append('files', file);
+            }
+            
+            try {
+                const response = await axios.post(`${urls}/api/boards`, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+                console.log(JSON.stringify(formData));   //
+                showResponse('게시글이 성공적으로 등록되었습니다.', true);
+                document.getElementById('boardForm').reset();
+                document.getElementById('preview').innerHTML = '';
+                
+            } catch (error) {
+                showResponse('오류가 발생했습니다: ' + error.message, false);
+            }
+        });
+        
+        // 이미지 미리보기
+        document.getElementById('files').addEventListener('change', function(e) {
+            const preview = document.getElementById('preview');
+            preview.innerHTML = '';
+            
+            for (let file of this.files) {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'preview-image';
+                        preview.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+        
+        function showResponse(message, isSuccess) {
+            const responseDiv = document.getElementById('response');
+            responseDiv.textContent = message;
+            responseDiv.style.display = 'block';
+            responseDiv.className = isSuccess ? 'success' : 'error';
+            
+            setTimeout(() => {
+                responseDiv.style.display = 'none';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

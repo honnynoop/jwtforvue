@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>File Upload Test</title>
+</head>
+<body>
+    <h2>File Upload</h2>
+    <form id="uploadForm">
+        <input type="file" name="file" />
+        <button type="submit">Upload</button>
+    </form>
+
+    <h2>Uploaded Image</h2>
+    <img id="uploadedImage" src="" alt="Uploaded image will appear here" />
+
+    <script>
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            try {
+                const response = await fetch('./api/images/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await response.json();
+                document.getElementById('uploadedImage').src = data.fileDownloadUri;
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        });
+    </script>
+</body>
+</html>

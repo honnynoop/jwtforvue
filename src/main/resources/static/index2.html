@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Multiple Files Upload Test</title>
+     <link rel="icon" href="/favicon.ico">
+    <style>
+      .preview-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 20px 0;
+      }
+      .preview-item {
+        border: 1px solid #ddd;
+        padding: 10px;
+        border-radius: 4px;
+        width: 300px;
+      }
+      .preview-image {
+        max-width: 100%;
+        height: auto;
+      }
+      .upload-progress {
+        margin: 10px 0;
+        height: 20px;
+        background-color: #f0f0f0;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .progress-bar {
+        height: 100%;
+        background-color: #4caf50;
+        width: 0;
+        transition: width 0.3s ease;
+      }
+      .error {
+        color: red;
+        margin: 5px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Multiple Files Upload Test</h2>
+
+    <form id="uploadForm">
+      <input type="file" name="files" multiple accept="image/*" />
+      <div class="upload-progress">
+        <div class="progress-bar"></div>
+      </div>
+      <button type="submit">Upload Files</button>
+    </form>
+
+    <div id="previewContainer" class="preview-container"></div>
+
+    <script>
+      const urls = ".";
+      //const urls = "http://localhost:8080";
+      const uploadForm = document.getElementById("uploadForm");
+      const previewContainer = document.getElementById("previewContainer");
+      const progressBar = document.querySelector(".progress-bar");
+
+      uploadForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const formData = new FormData();
+
+        const files = uploadForm.querySelector('input[type="file"]').files;
+        for (let file of files) {
+          formData.append("files", file);
+        }
+
+        try {
+          progressBar.style.width = "0%";
+          const response = await fetch(`${urls}/api/images/upload`, {
+            method: "POST",
+            body: formData,
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total,
+              );
+              progressBar.style.width = percentCompleted + "%";
+            },
+          });
+
+          if (!response.ok) {
+            throw new Error("Upload failed");
+          }
+
+          const data = await response.json();
+          previewContainer.innerHTML = ""; // Clear previous previews
+
+          data.forEach((fileInfo) => {
+            const previewItem = document.createElement("div");
+            previewItem.className = "preview-item";
+            previewItem.innerHTML = `
+                        <img src="${urls}${fileInfo.downloadUri}" alt="${
+              fileInfo.originalFileName
+            }" class="preview-image"/>
+                        <p>url: ${urls}${fileInfo.downloadUri}</p>   
+                        <p>Original: ${fileInfo.originalFileName}</p>
+                        <p>Size: ${(fileInfo.size / 1024).toFixed(2)} KB</p>
+                        <p><a href="${urls}${
+              fileInfo.downloadUri
+            }" target="_blank">View Full Size</a></p>
+                        <p><a href="${urls}/api/images/download/${
+              fileInfo.storedFileName
+            }" download>Download</a></p>
+                    `;
+            previewContainer.appendChild(previewItem);
+          });
+
+          progressBar.style.width = "100%";
+          setTimeout(() => {
+            progressBar.style.width = "0%";
+          }, 1000);
+        } catch (error) {
+          console.error("Error:", error);
+          const errorDiv = document.createElement("div");
+          errorDiv.className = "error";
+          errorDiv.textContent = "Upload failed! Please try again.";
+          previewContainer.appendChild(errorDiv);
+          progressBar.style.width = "0%";
+        }
+      });
+
+      // 파일 선택시 미리보기
+      uploadForm
+        .querySelector('input[type="file"]')
+        .addEventListener("change", (e) => {
+          previewContainer.innerHTML = "";
+          const files = e.target.files;
+
+          for (let file of files) {
+            if (file.type.startsWith("image/")) {
+              const reader = new FileReader();
+              const previewItem = document.createElement("div");
+              previewItem.className = "preview-item";
+
+              reader.onload = (e) => {
+                previewItem.innerHTML = `
+                            <img src="${
+                              e.target.result
+                            }" alt="Preview" class="preview-image"/>
+                            <p>Name: ${file.name}</p>
+                            <p>Size: ${(file.size / 1024).toFixed(2)} KB</p>
+                            <p>Type: ${file.type}</p>
+                        `;
+              };
+
+              reader.readAsDataURL(file);
+              previewContainer.appendChild(previewItem);
+            }
+          }
+        });
+    </script>
+  </body>
+</html>

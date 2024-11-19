@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ssafy.edu.mapper.UserMapper">
+
+    <resultMap id="UserResultMap" type="User">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="name" column="name"/>
+        <result property="email" column="email"/>
+        <result property="role" column="role"/>
+        <result property="enabled" column="enabled"/>
+        <result property="accountNonLocked" column="account_non_locked"/>
+        <result property="loginAttempts" column="login_attempts"/>
+        <result property="lastLoginDate" column="last_login_date"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 공통 컬럼 -->
+    <sql id="userColumns">
+        id,
+        username,
+        password,
+        name,
+        email,
+        role,
+        enabled,
+        account_non_locked,
+        login_attempts,
+        last_login_date,
+        created_at,
+        updated_at
+    </sql>
+
+    <!-- 검색 조건 -->
+    <sql id="searchCondition">
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (
+                    username LIKE CONCAT('%', #{keyword}, '%')
+                    OR name LIKE CONCAT('%', #{keyword}, '%')
+                    OR email LIKE CONCAT('%', #{keyword}, '%')
+                )
+            </if>
+        </where>
+    </sql>
+
+    <!-- 기본 CRUD -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (
+            username,
+            password,
+            name,
+            email,
+            role,
+            enabled,
+            account_non_locked,
+            login_attempts,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{username},
+            #{password},
+            #{name},
+            #{email},
+            #{role},
+            1,
+            1,
+            0,
+            CURRENT_TIMESTAMP,
+            CURRENT_TIMESTAMP
+        )
+    </insert>
+
+    <select id="findById" resultMap="UserResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE id = #{id}
+    </select>
+
+    <select id="findByUsername" resultMap="UserResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE username = #{username}
+    </select>
+
+    <select id="findByEmail" resultMap="UserResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE email = #{email}
+    </select>
+
+    <select id="findAll" resultMap="UserResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        <include refid="searchCondition"/>
+        ORDER BY created_at DESC
+    </select>
+
+    <update id="update">
+        UPDATE users
+        <set>
+            <if test="name != null">name = #{name},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="password != null">password = #{password},</if>
+            <if test="role != null">role = #{role},</if>
+            <if test="enabled != null">enabled = #{enabled},</if>
+            <if test="accountNonLocked != null">account_non_locked = #{accountNonLocked},</if>
+            updated_at = CURRENT_TIMESTAMP
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM users WHERE id = #{id}
+    </delete>
+
+    <!-- 카운트 관련 -->
+    <select id="countByUsername" resultType="int">
+        SELECT COUNT(*) FROM users WHERE username = #{username}
+    </select>
+
+    <select id="countByEmail" resultType="int">
+        SELECT COUNT(*) FROM users WHERE email = #{email}
+    </select>
+
+    <!-- RefreshToken 관련 -->
+    <insert id="saveRefreshToken">
+        INSERT INTO refresh_tokens (
+            user_id,
+            token,
+            expiry_date
+        ) VALUES (
+            #{userId},
+            #{token},
+            #{expiryDate}
+        ) ON DUPLICATE KEY UPDATE
+            token = VALUES(token),
+            expiry_date = VALUES(expiry_date)
+    </insert>
+
+    <select id="findRefreshTokenByUserId" resultType="string">
+        SELECT token
+        FROM refresh_tokens
+        WHERE user_id = #{userId}
+        AND expiry_date > CURRENT_TIMESTAMP
+    </select>
+
+    <delete id="deleteRefreshToken">
+        DELETE FROM refresh_tokens WHERE user_id = #{userId}
+    </delete>
+
+    <delete id="deleteExpiredRefreshTokens">
+        DELETE FROM refresh_tokens WHERE expiry_date &lt; CURRENT_TIMESTAMP
+    </delete>
+
+    <!-- 권한 관련 -->
+    <update id="updateRole">
+        UPDATE users
+        SET role = #{role},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{userId}
+    </update>
+
+    <select id="findByRole" resultMap="UserResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE role = #{role}
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 로그인 관련 -->
+    <update id="updateLastLoginDate">
+        UPDATE users
+        SET last_login_date = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{userId}
+    </update>
+
+    <update id="incrementLoginAttempts">
+        UPDATE users
+        SET login_attempts = login_attempts + 1
+        WHERE username = #{username}
+    </update>
+
+    <update id="resetLoginAttempts">
+        UPDATE users
+        SET login_attempts = 0
+        WHERE username = #{username}
+    </update>
+
+    <select id="getLoginAttempts" resultType="int">
+        SELECT login_attempts
+        FROM users
+        WHERE username = #{username}
+    </select>
+
+    <update id="lockAccount">
+        UPDATE users
+        SET account_non_locked = 0
+        WHERE username = #{username}
+    </update>
+
+    <update id="unlockAccount">
+        UPDATE users
+        SET account_non_locked = 1,
+            login_attempts = 0
+        WHERE username = #{username}
+    </update>
+
+    <!-- 비밀번호 관련 -->
+    <update id="updatePassword">
+        UPDATE users
+        SET password = #{password},
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = #{userId}
+    </update>
+
+    <insert id="createPasswordResetToken">
+        INSERT INTO password_reset_tokens (
+            user_id,
+            token,
+            expiry_date
+        ) VALUES (
+            #{userId},
+            #{token},
+            #{expiryDate}
+        ) ON DUPLICATE KEY UPDATE
+            token = VALUES(token),
+            expiry_date = VALUES(expiry_date)
+    </insert>
+
+    <select id="findByPasswordResetToken" resultMap="UserResultMap">
+        SELECT u.*
+        FROM users u
+        JOIN password_reset_tokens prt ON u.id = prt.user_id
+        WHERE prt.token = #{token}
+        AND prt.expiry_date > CURRENT_TIMESTAMP
+    </select>
+
+    <delete id="deletePasswordResetToken">
+        DELETE FROM password_reset_tokens WHERE token = #{token}
+    </delete>
+
+    <!-- 검색 및 필터링 -->
+    <select id="findByCreatedAtBetween" resultMap="UserResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE created_at BETWEEN #{startDate} AND #{endDate}
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="findByKeywordAndRole" resultMap="UserResultMap">
+        SELECT <include refid="userColumns"/>
+        FROM users
+        WHERE role = #{role}
+        <if test="keyword != null and keyword != ''">
+            AND (
+                username LIKE CONCAT('%', #{keyword}, '%')
+                OR name LIKE CONCAT('%', #{keyword}, '%')
+                OR email LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 통계 -->
+    <select id="countTotalUsers" resultType="int">
+        SELECT COUNT(*) FROM users
+    </select>
+
+    <select id="countUsersByRole" resultType="int">
+        SELECT COUNT(*) 
+        FROM users 
+        WHERE role = #{role}
+    </select>
+
+    <select id="countActiveUsers" resultType="int">
+        SELECT COUNT(*) 
+        FROM users 
+        WHERE enabled = 1 
+        AND account_non_locked = 1
+    </select>
+</mapper>

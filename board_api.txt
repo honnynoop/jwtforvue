@@ -1,0 +1,228 @@
+CREATE SCHEMA IF NOT EXISTS `board_db` DEFAULT 
+CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci ;
+USE `board_db` ;
+-- 사용자 테이블
+-- 사용자 테이블
+CREATE TABLE users (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(100) NOT NULL,
+    name VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    role VARCHAR(20) NOT NULL DEFAULT 'ROLE_USER',
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    account_non_locked BOOLEAN NOT NULL DEFAULT TRUE,
+    login_attempts INT NOT NULL DEFAULT 0,
+    last_login_date TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 리프레시 토큰 테이블
+CREATE TABLE refresh_tokens (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    expiry_date TIMESTAMP NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 비밀번호 재설정 토큰 테이블
+CREATE TABLE password_reset_tokens (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    token VARCHAR(255) NOT NULL,
+    expiry_date TIMESTAMP NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 인덱스 추가
+CREATE INDEX idx_users_username ON users(username);
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);
+CREATE INDEX idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+CREATE INDEX idx_password_reset_tokens_user_id ON password_reset_tokens(user_id);
+-- 게시판 테이블
+CREATE TABLE boards (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    user_id BIGINT NOT NULL,
+    view_count INT DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 댓글 테이블
+CREATE TABLE comments (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    board_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+-- 파일 테이블
+CREATE TABLE board_files (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    board_id BIGINT NOT NULL,
+    original_filename VARCHAR(255) NOT NULL,
+    stored_filename VARCHAR(255) NOT NULL,
+    file_size BIGINT NOT NULL,
+    content_type VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (board_id) REFERENCES boards(id) ON DELETE CASCADE
+);
+
+commit;
+
+
+
+E:\spring2024_1113\board-api-vue
+에 클라이언트 존재
+
+
+{id: 35, title: 'sdfsd', content: 'fsfsdfsf', userId: 1, viewCount: 1, …}
+authorName
+: 
+"kal"
+content
+: 
+"fsfsdfsf"
+createdAt
+: 
+"2024-11-16 17:56:07"
+files
+: 
+Array(3)
+0
+: 
+boardId
+: 
+35
+contentType
+: 
+"image/jpeg"
+createdAt
+: 
+"2024-11-16 17:56:07"
+fileExtension
+: 
+"jpg"
+fileSize
+: 
+58044
+fileUrl
+: 
+"/uploads/b732bf4a-3585-41da-9795-4810dee01d35.jpg"
+formattedSize
+: 
+"56.7 KB"
+id
+: 
+26
+image
+: 
+true
+originalFilename
+: 
+"KakaoTalk_20231113_091147950.jpg"
+storedFilename
+: 
+"b732bf4a-3585-41da-9795-4810dee01d35.jpg"
+[[Prototype]]
+: 
+Object
+1
+: 
+boardId
+: 
+35
+contentType
+: 
+"image/jpeg"
+createdAt
+: 
+"2024-11-16 17:56:07"
+fileExtension
+: 
+"jpg"
+fileSize
+: 
+48025
+fileUrl
+: 
+"/uploads/de4d0c5a-ce0c-4b9d-a8b9-d7f741bb9932.jpg"
+formattedSize
+: 
+"46.9 KB"
+id
+: 
+27
+image
+: 
+true
+originalFilename
+: 
+"KakaoTalk_20231113_091147950_01.jpg"
+storedFilename
+: 
+"de4d0c5a-ce0c-4b9d-a8b9-d7f741bb9932.jpg"
+[[Prototype]]
+: 
+Object
+2
+: 
+{id: 28, boardId: 35, originalFilename: 'KakaoTalk_20231113_091147950_02.jpg', storedFilename: '402021c0-32fa-4eaf-a311-d419aad0bc87.jpg', fileSize: 51987, …}
+length
+: 
+3
+[[Prototype]]
+: 
+Array(0)
+id
+: 
+35
+title
+: 
+"sdfsd"
+updatedAt
+: 
+"2024-11-16 17:56:07"
+userId
+: 
+1
+viewCount
+: 
+1
+[[Prototype]]
+: 
+Object
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
